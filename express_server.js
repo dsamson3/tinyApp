@@ -60,15 +60,20 @@ app.get("/urls/:id", (req, res) => {
     let templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id]};
     res.render("urls_show", templateVars);
   });
+app.post("/urls/:id", (req, res) => {
+  urlDatabase[req.params.id] = req.body.longURL;
+  res.redirect("/urls");
+});
 
  app.post("/urls", (req, res) => {
     let randomShortURL= "";
     randomShortURL= generateRandomString(6); //ctdhtt
     urlDatabase[randomShortURL] =validateURL(req.body.longURL); //urlDatabase[ctdhtt] = http://google.com
-    res.redirect(`http://localhost:${PORT}/u/${randomShortURL}`)        
+    res.redirect(`/urls`)        
   });
-  app.post("/urls/<%= url %>/delete", (req, res) => {
-    urlDatabase.url.delete    
+  app.post("/urls/:id/delete", (req, res) => {
+    delete urlDatabase[req.params.id];
+        res.redirect("/urls");
   });
 app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}!`);
