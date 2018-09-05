@@ -14,9 +14,8 @@
 <body>
         <% include ./partials/_header %>
        <ul>
-
         <% Object.keys(urls).forEach(function(url){ %>
-           <li> <%= url %> - <%= urls[url] %> <</li>
+           <li> <%= url %> - <%= urls[url] %> <br> <form action="/urls/<%= url %>/delete" method="POST"><input type="button" class="btn btn-primary" value ="Delete"> </form></li>
         <% }); %>
         </ul>
         <button type="button" class="btn btn-primary">Get Tiny</button>

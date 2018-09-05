@@ -1,12 +1,10 @@
-function generateRandomString(strLength) {
-    let outputArray = [];
-    let str = ""
-    strLength.forEach(function (str){
-        outputArray.push(String.fromCharCode(Math.floor(Math.random() * (122 - 65) + 65)));
-    })
-    str = outputArray.join('');
-    return str;
-   
+function validateURL(para){
+    let str = para.includes("http://")
+    if(str === true){
+    return para
+    } else {
+    return `http//:${para}`
+    }
 }
 
-console.log(generateRandomString(6));
+console.log(validateURL("http://google.com"));

@@ -12,12 +12,20 @@ var urlDatabase = {
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
+function validateURL(para){
+  let str = para.includes("http://")
+  if(str === true){
+  return para
+  } else {
+  return `http://${para}`
+  }
+}
 function generateRandomString(strLength) {
     let outputArray = [];
     let str = ""
     for(let i = 0; i < strLength + 1 ; i++){
     
-   outputArray.push(String.fromCharCode(Math.floor(Math.random() * (122 - 65) + 65)));
+outputArray.push(String.fromCharCode(Math.floor(Math.random() * (122 - 65) + 65)));
     }
     str = outputArray.join('');
     return str;
@@ -45,7 +53,7 @@ app.get("/urls/new", (req, res) => {
   });
 
   app.get("/u/:shortURL", (req, res) => {
-    res.redirect(`http://${urlDatabase[req.params.shortURL]}`);
+    res.redirect(`${urlDatabase[req.params.shortURL]}`);
   });
 
 app.get("/urls/:id", (req, res) => {
@@ -53,13 +61,15 @@ app.get("/urls/:id", (req, res) => {
     res.render("urls_show", templateVars);
   });
 
-app.post("/urls", (req, res) => {
+ app.post("/urls", (req, res) => {
     let randomShortURL= "";
-    randomShortURL= generateRandomString(6);
-    urlDatabase[randomShortURL] =req.body.longURL;
+    randomShortURL= generateRandomString(6); //ctdhtt
+    urlDatabase[randomShortURL] =validateURL(req.body.longURL); //urlDatabase[ctdhtt] = http://google.com
     res.redirect(`http://localhost:${PORT}/u/${randomShortURL}`)        
   });
-
+  app.post("/urls/<%= url %>/delete", (req, res) => {
+    urlDatabase.url.delete    
+  });
 app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}!`);
   });
