@@ -3,6 +3,8 @@ var express = require("express");
 var app = express();
 var PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
+var cookieParser = require('cookie-parser')
+app.use(cookieParser())
 
 var urlDatabase = {
     "b2xVn2": "http://www.lighthouselabs.ca",
@@ -60,6 +62,13 @@ app.get("/urls/:id", (req, res) => {
     let templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id]};
     res.render("urls_show", templateVars);
   });
+
+app.post("/login", (req, res) =>{
+  let userName = req.body.userName;
+  res.cookie('username', userName);
+  res.redirect("/urls")
+});
+
 
  app.post("/urls", (req, res) => {
     let randomShortURL= "";
