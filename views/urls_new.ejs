@@ -6,8 +6,8 @@
     
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
      </head>
+    <header><% include ./partials/_header %></header>
   <body style="font-size:20px; padding:50px;">
-      <%- include("./partials/_header", {userName: userName}) %>
     <form action="/urls" method="POST" style="margin:150px;">
       <label for="longURL">Enter a URL:</label>
       <input id="longURL" type="text" name="longURL" placeholder="http://" style="width: 300px">

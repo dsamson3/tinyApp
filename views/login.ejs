@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <% include ./partials/_head %>
+</head>
+<body>
+
+       
+
+  <main>
+    <h2>Log into your account</h2>
+    <form action="/login" method="POST">
+      <label for="login">Login </label>
+      <input id="login" name="email" type="email">
+      <br/>
+      <label for="password">Password </label>
+      <input id="password" name="password" type="password"><br/>
+      <input type="submit" value="Sign In">
+    </form>
+
+    <p>Don't have an account? <a href="/register">Click here to sign up.</a></p>
+  </main>
+
+  
+</body>
+</html>
