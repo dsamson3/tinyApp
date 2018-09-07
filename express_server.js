@@ -15,8 +15,8 @@ var urlDatabase = {
 const users = { 
   "ab12a1b2": {
     id: "ab12a1b2", 
-    email: "talos@example.com", 
-    password: "purple-monkey-dishwasher"
+    email: "a@a.com", 
+    password: "aaa"
   },
  "cd34c3d4": {
     id: "cd34c3d4", 
@@ -28,9 +28,6 @@ const users = {
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 //Helpers
-
-
-
 
 
 
@@ -47,7 +44,7 @@ function generateRandomString(strLength) {
     let str = ""
     for(let i = 0; i < strLength + 1 ; i++){
     
-outputArray.push(String.fromCharCode(Math.floor(Math.random() * (122 - 65) + 65)));
+outputArray.push(String.fromCharCode(Math.floor(Math.random() * (87 - 65) + 65)));
     }
     str = outputArray.join('');
     return str;
@@ -66,12 +63,14 @@ app.get("/hello", (req, res) => {
   });
 
 app.get("/urls", (req, res) => {
-    let templateVars = { urls: urlDatabase, user: users };
+    let user = users[req.cookies["user_id"]] || null;
+    let templateVars = { urls: urlDatabase, user };
     res.render("urls_index", templateVars);
   });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { user: users };
+  let user = users[req.cookies["user_id"]] || null;
+  let templateVars = { user };
     res.render("urls_new", templateVars);
   });
 
@@ -81,7 +80,8 @@ app.get("/urls/new", (req, res) => {
 
 
 app.get("/urls/:id", (req, res) => {
-    let templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id], user: users };
+  let user = users[req.cookies["user_id"]] || null;
+    let templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id], user };
     res.render("urls_show", templateVars);
   });
 // Get login Page
@@ -98,16 +98,17 @@ app.post("/login", (req, res) =>{
   for(let id in users){
     if(users[id].email === req.body.email){
      emailExists = true;
-     user_id = id
+     user_id = id;
 }
   }
   if(!emailExists){
     res.status(403).send("Error 403: Email Not registered");
-  } else if(req.body.password !== users[id].password) {
+  } else if(req.body.password !== users[user_id].password) {
     res.status(403).send("Error 403: Invalid Password");
   } else {
-    res.cookie
-    res.redirect("/");
+    res.cookie("user_id" , user_id);
+    res.redirect("/urls");
+    console.log(user_id)
   }
 
 });
@@ -120,9 +121,11 @@ app.post("/urls/:id", (req, res) => {
 // Register
 
  app.get("/register", (req, res)=> {
-  const username = req.cookies.username || '';
-    res.render("register");
-}); 
+  let id = req.session.user_id
+  let user = users[req.cookies["user_id"]] || null;
+  let templateVars = { user: user };
+  res.render("register", templateVars);
+});
 
 
 app.post("/register", (req, res) => {
@@ -156,10 +159,13 @@ res.redirect("/login");
 
 });
 
-
+app.get('/logout', (req, res) => {
+  res.clearCookie('user_id')
+  res.redirect("/urls")
+  });
 
 app.post('/logout', (req, res) => {
-res.clearCookie("userName")
+res.clearCookie('user_id')
 res.redirect("/urls")
 });
  
