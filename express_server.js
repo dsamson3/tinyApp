@@ -65,10 +65,8 @@ outputArray.push(String.fromCharCode(Math.floor(Math.random() * (87 - 65) + 65))
 function secretUrls(id) {
   let urls = {};
   for (let shortURL in urlDatabase) {
-    console.log(urlDatabase[shortURL], id);
     if (urlDatabase[shortURL].ownerID === id) {
       urls[shortURL] = urlDatabase[shortURL];
-      console.log("in if")
     }
   }
   return urls;
@@ -92,7 +90,6 @@ app.get("/hello", (req, res) => {
 app.get("/urls", (req, res) => {
   let user = users[req.cookies["user_id"]];
   let urls = {};
-  console.log(user);
   if(user !== undefined){
     urls = secretUrls(user.id)
   }
@@ -112,16 +109,38 @@ app.get("/urls/new", (req, res) => {
 });
 
   app.get("/u/:shortURL", (req, res) => {
-    res.redirect(`${urlDatabase[req.params.shortURL]}`);
-  });
+    let longURL = urlDatabase[req.params.shortURL]['longURL'];
+    if (longURL == undefined) {
+        res.status(404)
+            .send("Not found!")
+    }
+    else {
+        res.redirect(longURL);
+    }
+});
+    
 
 
 app.get("/urls/:id", (req, res) => {
-  let user = users[req.cookies["user_id"]] || null;
-    let templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id], user };
-    res.render("urls_show", templateVars);
-  });
-// Get login Page
+  if(!req.cookies.user_id){
+    res.status(403).send("Error 403; Please Register for a TinyApp Account Before entering this page")
+  } 
+   let userID = req.cookie.user_id;
+    let user = users[userID]
+    let templateVars = {
+        shortURL: req.params.id,
+        urls: urlDatabase,
+        user: user
+    };
+    for (var urls in urlDatabase) {
+      if (urls === req.params.id) {
+          res.render("urls_show", templateVars);
+          return; 
+      }
+  }
+  res.status(400).send(" Error 400: URL doesn't exist in Database!")
+});
+// --------- Get login Page ----------------//
 app.get("/login", (req,res) =>{
   let templateVars = {user: users}
   res.render("login")
@@ -150,12 +169,30 @@ app.post("/login", (req, res) =>{
 
 });
 
-app.post("/urls/:id", (req, res) => {
-  urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect("/urls");
+app.post("/urls/:id/edit", (req, res) => {
+  if (urlDatabase[req.params.id]['userID'] === req.cookies.user_id) {
+    delete urlDatabase[req.params.id];
+    urlDatabase[req.params.id] = {
+        'adr': req.body.longURL,
+        'userID': req.session.user_id,
+    }
+    res.redirect(`/urls/${req.params.id}`);
+} else {
+    res.status(400).send("Error 400: Permission denied cannot edit this link.")
+}
+})
+
+app.post("/urls/:id/delete", (req, res) => { //on delete button
+  if (urlDatabase[req.params.id]['userID'] === req.cookie.user_id) {
+      console.log(urlDatabase[req.params.id], "has been deleted");
+      delete urlDatabase[req.params.id];
+      res.redirect(`/urls`); //redirect to updated list
+  } else {
+      res.status(400).send("Error 400: Permission denied cannot delete link.")
+  }
 });
 
-// Register
+// ---------------Register -----------------------//
 
  app.get("/register", (req, res)=> {
   let id = req.session.user_id
