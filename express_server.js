@@ -5,7 +5,7 @@ var PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 var cookieParser = require('cookie-parser')
 app.use(cookieParser())
-
+const bcrypt = require('bcrypt');
 //-------------DataBase---------------//
 
 
@@ -119,8 +119,6 @@ app.get("/urls/new", (req, res) => {
     }
 });
     
-
-
 app.get("/urls/:id", (req, res) => {
   if(!req.cookies.user_id){
     res.status(403).send("Error 403; Please Register for a TinyApp Account Before entering this page")
@@ -153,24 +151,25 @@ app.post("/login", (req, res) =>{
 
   for(let id in users){
     if(users[id].email === req.body.email){
-     emailExists = true;
-     user_id = id;
-}
+      if (bcrypt.compareSync(req.body.password, users[id]['password'])) {
+      emailExists = true;
+      req.cookie.user_id = id;
+      res.redirect("/urls")
+      } else {
+        emailExists = true;
+        res.status(400).send("Error 400: Username and Password do not match. Please return and try again")
+      }
+    }
   }
-  if(!emailExists){
-    res.status(403).send("Error 403: Email Not registered");
-  } else if(req.body.password !== users[user_id].password) {
-    res.status(403).send("Error 403: Invalid Password");
-  } else {
-    res.cookie("user_id" , user_id);
-    res.redirect("/urls");
-    
+  if( emailExists === false){
+    res.status(400).send("Error 400: Username does not exist. Please register before accessing site")
   }
-
 });
+  
+
 
 app.post("/urls/:id/edit", (req, res) => {
-  if (urlDatabase[req.params.id]['userID'] === req.cookies.user_id) {
+  if(urlDatabase[req.params.id]['userID'] === req.cookies.user_id) {
     delete urlDatabase[req.params.id];
     urlDatabase[req.params.id] = {
         'adr': req.body.longURL,
@@ -225,7 +224,7 @@ app.post("/register", (req, res) => {
   users[newID] = {
     id: newID,
     email: req.body.email,
-    password: req.body.password};
+    password: bcrypt.hashSync(preq.body.password, 10)}
 // set cookie to new ID
 res.cookie("user_id", "newID");
 // redirect if we good
@@ -259,11 +258,6 @@ res.redirect("/urls")
    }
   });
 
-
-  app.post("/urls/:id/delete", (req, res) => {
-    delete urlDatabase[req.params.id];
-        res.redirect("/urls");
-  });
 app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}!`);
   });
