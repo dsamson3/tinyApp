@@ -111,9 +111,7 @@ app.get("/hello", (req, res) => {
 // ---------------Register -----------------------//
 
 app.get("/register", (req, res)=> {
-  let id = req.session.user_id
-  let user = users[userID];
-  let templateVars = { user: user};
+  let templateVars = { user: req.session.user_id};
   res.render("register", templateVars);
 });
 
@@ -129,18 +127,20 @@ app.post("/register", (req, res) => {
   }
   // iterate through object to compare emails
   for(let id in users){
-    if(req.body.username === users[id]['email']){
+    if(email === users[id]['email']){
     res.status(400).send('Error 400: Account already exists')
       return;
     }
   }
   // creating new Id & adding to user database
-  let newID = user + generateRandomString(6);
+  let newID = generateRandomString(6);
   
   users[newID] = {
     id: newID,
     email: req.body.email,
-    password: bcrypt.hashSync(req.body.password, 10)}
+    password: bcrypt.hashSync(password, 10)
+  }
+    console.log(users);
 // set cookie to new ID
 req.session.user_id = users[newID].id;
 // redirect if we good
@@ -150,9 +150,7 @@ res.redirect("/login");
 
 // --------- Get login Page ----------------//
 app.get("/login", (req, res) =>{
-  let userID = req.cookies.user_id
-  let user = users[userID]
-  let templateVars = { user: users , urls: urlDatabase};
+  let templateVars = { user: req.session.user_id};
     res.render("login", templateVars);
 });
   
@@ -179,18 +177,18 @@ app.post("/login", (req, res) => {
 
 
 app.get("/urls", (req, res) => {
-  let user = req.session.user_id;
+  let userCookie = req.session.user_id;
   let urls = {}
   if (user !== undefined) {
-    urls = sercretUrls(user.id)
+    urls = secretUrls(user.id)
   }
   let templateVars = { urls: urls, user: user };
   res.render("urls_index", templateVars)
 })
 
 app.post('/urls', (req, res) => { // Create New Tiny Url
-  let user = req.session.user_id;
-  if(user === undefined){
+  let userCookie = req.session.user_id;
+  if(userCookie === undefined){
     res.redirect("/login");
     return;
   }
@@ -255,8 +253,8 @@ app.post("/urls/:id/delete", (req, res) => { //Remoce Tiny Url
 // ------ Log Out ----------//
 
 app.post('/logout', (req, res) => {
-req.session = null;
-res.redirect("/urls")
+delete req.session['user_id']
+res.redirect("/urls");
 });
 
 //------------ Listening Port------------------//
