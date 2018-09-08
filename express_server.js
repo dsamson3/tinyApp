@@ -32,9 +32,9 @@ app.use(cookieSession({ // Set Cookies
 
 
 //-------------DataBase---------------//
-const urlDatabase = {};
-const users = {};
-/* 
+//const urlDatabase = {};
+ //const users = {};
+
 var urlDatabase = {
   "b2xVn2": {
     shortURL: "b2xVn2",
@@ -47,18 +47,19 @@ var urlDatabase = {
     ownerID: "cd34c3d4"
    }
 };
- const users = { 
+
+  const users = { 
    "ab12a1b2": {
     id: "ab12a1b2", 
     email: "a@a.com", 
-    password: "$2a$10$mHczVRhhNZ.Ml.aCmF0EfOE/VpDOYZzMrn.f60kTACuR0JekGC/v6"
+    password: bcrypt.hashSync("aaa", 10)
   } , 
  "cd34c3d4": {
     id: "cd34c3d4", 
     email: "b@b.com", 
-    password: "$2a$10$Rk8EacMPaQUznXCaG25xSOKq1.QNNDxfT6cpcSMj82RHBjOvTC3S"
+    password: bcrypt.hashSync("bbb", 10)
   } 
-}  */
+}   
 
 //---------------  Helpers Functions ---------------------//
 
@@ -73,7 +74,7 @@ function validateURL(para){
 
 function generateRandomString(strLength) {
     let outputArray = [];
-    let str = ""
+    let str = "";
     for(let i = 0; i < strLength + 1 ; i++){
     
 outputArray.push(String.fromCharCode(Math.floor(Math.random() * (87 - 65) + 65)));
@@ -85,7 +86,7 @@ outputArray.push(String.fromCharCode(Math.floor(Math.random() * (87 - 65) + 65))
 function secretUrls(id) {
   let urls = {};
   for (let shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].ownerID === id) {
+    if (urlDatabase[shortURL].userID === id) {
       urls[shortURL] = urlDatabase[shortURL];
     }
   }
@@ -111,7 +112,7 @@ app.get("/hello", (req, res) => {
 // ---------------Register -----------------------//
 
 app.get("/register", (req, res)=> {
-  let templateVars = { user: req.session.user_id};
+  let templateVars = { user: users[req.session.user_id]};
   res.render("register", templateVars);
 });
 
@@ -125,80 +126,87 @@ app.post("/register", (req, res) => {
     res.status(400).send("Error 400: Please fill all fields")
     return;
   }
-  // iterate through object to compare emails
-  for(let id in users){
-    if(email === users[id]['email']){
-    res.status(400).send('Error 400: Account already exists')
-      return;
-    }
-  }
-  // creating new Id & adding to user database
-  let newID = generateRandomString(6);
   
-  users[newID] = {
-    id: newID,
-    email: req.body.email,
-    password: bcrypt.hashSync(password, 10)
-  }
-    console.log(users);
+  
+  // creating new Id & adding to user database
+ 
+ let newID = generateRandomString(6);
+ for(let id in users){                        // iterate through object to compare emails
+   if(email === users[id].email){
+   res.status(400).send('Error 400: Account already exists')
+     return;
+   }
+ }
+ users[newID] = {};
+ users[newID].id = newID,
+ users[newID].email= email;
+ users[newID].password = password;
+ 
+
 // set cookie to new ID
-req.session.user_id = users[newID].id;
+req.session.user_id = newID;
 // redirect if we good
 res.redirect("/login");
 });
 
 
+
 // --------- Get login Page ----------------//
-app.get("/login", (req, res) =>{
-  let templateVars = { user: req.session.user_id};
+app.get("/login", (req, res) => {
+
+  if(!req.session.user_id)
+  {
+    let templateVars = {user: users[req.session.user_id]}
     res.render("login", templateVars);
+  }
+  else{
+    res.redirect("/urls");
+  }
+
 });
   
 app.post("/login", (req, res) => {
   let emailExists = false;
   let user_id;
 
+  if(req.body.email === "" || req.body.password === ""){
+    res.status(403).send("Error 403; Please Fill out provided fields")
+  }
+
   for(let id in users){
     if(users[id].email === req.body.email){
-      emailExists = true;
-      user_id = id;
+     emailExists = true;
+     user_id = id;
+     }
     }
-  }
     if(!emailExists){
-      res.status(403).send("Error 403: Email not Registered")
-    } else if (!bcrypt.compareSync(req.body.password, users[user_id].password)){
-        res.status(403).send('Error 403: Invalid Password')
+      res.status(403).send("Error 403: Email Not Registered!!!")
+    } else if (!bcrypt.compareSync(req.body.password, users[user_id].password)) {
+      res.status(403).send("Error 403: Invalid Password");
     } else {
       req.session.user_id = user_id;
-      res.redirect("/urls")
+      res.redirect('/urls');
     }
 });
 //-------------URLS-------------------//
 
 
 app.get("/urls", (req, res) => {
-  let userCookie = req.session.user_id;
-  let urls = {}
-  if (user !== undefined) {
-    urls = secretUrls(user.id)
-  }
-  let templateVars = { urls: urls, user: user };
-  res.render("urls_index", templateVars)
-})
 
-app.post('/urls', (req, res) => { // Create New Tiny Url
-  let userCookie = req.session.user_id;
-  if(userCookie === undefined){
+  if(!req.session.user_id) {
     res.redirect("/login");
-    return;
+  } else {
+    if(Object.keys(users).indexOf(req.session.user_id) === -1){
+      req.session = null;
+      return res.redirect('/login');
+    } else {
+      let templateVars = {user: users[req.session.user_id], urls: urlDatabase};
+      res.render("urls_index", templateVars);
+    }
   }
-  let newShortURL = generateRandomString (6);
-  urlDatabase[newShortURL] = {
-    url: req.body['longURL'],
-    userID:  user.id
-  }
-  res.redirect("/urls");
 });
+
+
 
 app.get("/urls/new", (req, res) => {
   let user = req.session.user_id;
@@ -206,10 +214,31 @@ app.get("/urls/new", (req, res) => {
     res.redirect("/login");
     return;
   }
-  let templateVars = { user: user };
+  let templateVars = { user: users[req.session.user_id] , urls: urlDatabase};
   res.render("urls_new", templateVars);
 });
 
+app.get("/urls/:id", (req, res) => { //render page showing shrunk url
+  if (!req.session.user_id) {
+      res.status(403)
+      .send("please register for an account before trying to access this page")
+  }
+  let userID = req.session.user_id
+  let user = users[userID]
+  let templateVars = {
+      shortURL: req.params.id,
+      urls: urlDatabase,
+      user: user
+  };
+  for (var sites in urlDatabase) {
+      if (sites === req.params.id) {
+          res.render("urls_show", templateVars);
+          return; 
+      }
+  }
+  res.status(404)
+  .send("URL doesn't exist~!")
+});
 
 app.get("/urls/:id", (req, res) => {
   let user = req.session.user_id;
@@ -222,39 +251,69 @@ app.get("/urls/:id", (req, res) => {
     res.status(403).send("unauthorized");
     return;
   }
-  let templateVars = { shortURL: shortURL, longURL: urlDatabase[shortURL].url, user: req.session.user_id };
+  let templateVars = { shortURL: shortURL, longURL: urlDatabase[shortURL].url, user: users[req.session.user_id] };
   res.render("urls_show", templateVars);
 });
 
 
-app.post("/urls/:id/", (req, res) => { // Update Tiny Url
-  let user = req.session.user_id;
-  let shortURL = req.params.id;
-  if(urlDatabase[shortURL].userID !== user.id){
-    res.status(403).send("Error 403: Unauthorized update");
-  }
-  urlDatabase[shortURL].url = req.body['longURL'];
-  res.redirect('/urls');
+app.post("/urls", (req, res) => {
+
+  if(req.session.user_id){
+      let randomShortURL = "";
+      randomShortURL = generateRandomString(6);
+      urlDatabase[randomShortURL] = {};
+      urlDatabase[randomShortURL]["longURL"]= validateURL(req.body.longURL);
+      urlDatabase[randomShortURL]["ownerID"] = req.session.user_id;
+      res.redirect(`http://localhost:${PORT}/urls`); 
+    }    
 });
 
-app.post("/urls/:id/delete", (req, res) => { //Remoce Tiny Url
-  let user = req.session.user_id;
-  let shortURL = req.params.id;
-  if(urlDatabase[shortURL].userID !== user.id){
-    res.status(403).send('Error 403: Unauthorized delete');
-    return;
-  } 
-    delete urlDatabase[shortURL];
-    res.redirect("/urls");
+
+app.post("/urls/:id", (req, res) => {// Check if valid user, edit link else login
+
+  if(req.session.user_id){
+    let shortURLID = req.params.id;
+    urlDatabase[shortURLID].longURL= validateURL(req.body.longURL);
+    res.redirect(`http://localhost:${PORT}/urls`);
+  }
+  else{
+    return res.redirect("/login");
+  }      
 });
-  
-  
+
+
+app.post("/urls/:id/delete", (req, res) => { // delete url if owned by user
+  if (urlDatabase[req.params.id]['ownerID'] === req.session.user_id) {
+    console.log(urlDatabase[req.params.id], "has been deleted");
+    delete urlDatabase[req.params.id];
+    res.redirect(`http://localhost:${PORT}/urls`); //redirect to updated list
+} else {
+    res.status(400)
+    .send("you do not have permission to edit this link.")
+}
+});
+
+
+
+app.post("/urls/:id/edit", (req, res) => { //recieve edited address from :id/edit
+  if (urlDatabase[req.params.id]['ownerID'] === req.session.user_id) {
+      delete urlDatabase[req.params.id];
+      urlDatabase[req.params.id] = {
+          'longURL': req.body.longURL,
+          'ownerID': req.session.user_id,
+      }
+      res.redirect(`/urls`);
+  } else {
+      res.status(400).send("Error 400: You do not have permission to edit this link.")
+  }
+})
+ 
 
 // ------ Log Out ----------//
 
 app.post('/logout', (req, res) => {
-delete req.session['user_id']
-res.redirect("/urls");
+req.session = null;
+res.redirect("/login");
 });
 
 //------------ Listening Port------------------//

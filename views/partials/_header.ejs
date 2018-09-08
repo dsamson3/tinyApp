@@ -1,16 +1,16 @@
 <header>Tiny App</header>
 
-<% if (user) {%>
-    <p>Logged in as: <%=user%></p>
-    <a href="/logout">Logout</a>
-    
-   
-  <% } else { %>
-
-    <form method="POST" action="/logout">
-      <%= user.id%><input type="submit" value="logout">
-  </form>
-    <a href="/register">Register</a>
-
-
-<% } %>
+<% if (!user) { %>
+  <a href="http://localhost:8080/login"><button>Login</button></a>
+  <br>
+  <br>
+  <a href="http://localhost:8080/register"><button>Register New Account</button></a>
+  <br>
+  <br>
+<% } else {%>
+  Current User is:
+  <%= user.email %>
+      <form action="/logout" method="POST">
+          <input type="submit" value="Logout" id="Logout">
+      </form>
+      <% } %>
