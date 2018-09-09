@@ -19,21 +19,7 @@ app.use(cookieSession({ // Set Cookies
 }));
 
 
-
-
-//--------- templateVars-----///
-/* const templateVars = {
-  user: undefined,
-  error: undefined
-} */
-
-
-
-
-
 //-------------DataBase---------------//
-//const urlDatabase = {};
- //const users = {};
 
 var urlDatabase = {
   "b2xVn2": {
@@ -140,7 +126,7 @@ app.post("/register", (req, res) => {
  users[newID] = {};
  users[newID].id = newID,
  users[newID].email= email;
- users[newID].password = password;
+ users[newID].password = bcrypt.hashSync(password, 10);
  
 
 // set cookie to new ID
@@ -207,7 +193,6 @@ app.get("/urls", (req, res) => {
 });
 
 
-
 app.get("/urls/new", (req, res) => {
   let user = req.session.user_id;
   if (user === undefined) {
@@ -219,26 +204,32 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => { //render page showing shrunk url
-  if (!req.session.user_id) {
-      res.status(403)
-      .send("please register for an account before trying to access this page")
+  if(!urlDatabase[req.params.id]) {
+    res.send('Error 400 URL does not Exists');
+  } else {
+  if(req.session.user_id=== urlDatabase[req.params.id].ownerID){
+     let templateVars = {user: users[req.session.user_id], urls: urlDatabase, shortURL: req.params.id}
+     res.render("urls_show", templateVars);
+
+  } else if (req.session.user_id) {
+    res.send('Access Denied');
+  } else {
+    res.redirect("/login");
   }
-  let userID = req.session.user_id
-  let user = users[userID]
-  let templateVars = {
-      shortURL: req.params.id,
-      urls: urlDatabase,
-      user: user
-  };
-  for (var sites in urlDatabase) {
-      if (sites === req.params.id) {
-          res.render("urls_show", templateVars);
-          return; 
-      }
+}
+  });
+  
+
+app.get("/u/:userShortURL", (req , res) => {
+  let newShortURL = req.params.userShortURL;
+  if(urlDatabase[newShortURL]){
+    res.redirect(urlDatabase[req.params.userShortURL].longURL);
+  }else {
+    res.status(400).send("Error 400: Page does not exist")
   }
-  res.status(404)
-  .send("URL doesn't exist~!")
+
 });
+
 
 app.get("/urls/:id", (req, res) => {
   let user = req.session.user_id;
@@ -264,6 +255,7 @@ app.post("/urls", (req, res) => {
       urlDatabase[randomShortURL] = {};
       urlDatabase[randomShortURL]["longURL"]= validateURL(req.body.longURL);
       urlDatabase[randomShortURL]["ownerID"] = req.session.user_id;
+      console.log(urlDatabase);
       res.redirect(`http://localhost:${PORT}/urls`); 
     }    
 });
